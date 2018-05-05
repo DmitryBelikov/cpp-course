@@ -413,9 +413,9 @@ private:
 
 public:
     using difference_type = std::ptrdiff_t;
-    using value_type = T;
-    using pointer = T*;
-    using reference = T&;
+    using value_type = T const;
+    using pointer = T const*;
+    using reference = T const&;
     using iterator_category = std::bidirectional_iterator_tag;
 
     const_iterator_list(const list<T>::iterator_list &other): ptr(other.ptr)
@@ -430,7 +430,7 @@ public:
         ptr.get() -> valid = false;
     }
 
-    T& operator*() const {
+    T const& operator*() const {
         assert(valid());
         assert(ptr->node_ptr != owner()->tail);
         return ptr->node_ptr->value;

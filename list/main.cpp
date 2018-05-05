@@ -11,7 +11,7 @@ int main() {
     l.push_back(1);
     l.push_back(2);
     l.push_back(3);
-    list<int>::const_iterator it = l.begin();
+    list<int>::iterator it = l.begin();
     *it = 5;
     for(auto it = l.begin(); it != l.end(); it++)
         cout << *it;
