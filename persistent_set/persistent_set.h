@@ -16,12 +16,12 @@ public:
     struct iterator;
 
     persistent_set();
-    persistent_set(persistent_set const&);
-    persistent_set& operator=(persistent_set const&);
+    persistent_set(const persistent_set &);
+    persistent_set& operator=(const persistent_set &);
     ~persistent_set();
 
-    iterator find(T);
-    pair<iterator, bool> insert(T const&);
+    iterator find(const T &);
+    std::pair<persistent_set<T>::iterator, bool> insert(const T &);
     void erase(iterator);
 
     iterator begin() const;
@@ -98,7 +98,7 @@ persistent_set<T>& persistent_set<T>::operator=(persistent_set const& other)
 }
 
 template <typename T>
-persistent_set<T>::iterator persistent_set<T>::find(T const& value)
+typename persistent_set<T>::iterator persistent_set<T>::find(T const& value)
 {
     if(root.get() == nullptr)
         return end();
@@ -117,7 +117,7 @@ persistent_set<T>::iterator persistent_set<T>::find(T const& value)
 }
 
 template <typename T>
-pair <persistent_set<T>::iterator, bool> persistent_set<T>::insert(T const& value)
+std::pair<typename persistent_set<T>::iterator, bool> persistent_set<T>::insert(const T &value)
 {
     if(root.get() == nullptr) {
         persistent_set a;
@@ -132,6 +132,7 @@ pair <persistent_set<T>::iterator, bool> persistent_set<T>::insert(T const& valu
     {
 
     }
+    return {it, false};
 }
 
 template <typename T>

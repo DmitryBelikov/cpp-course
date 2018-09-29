@@ -5,11 +5,15 @@ template <typename T>
 struct linked_ptr
 {
 public:
-    linked_ptr(T &target);
-    linked_ptr(const linked_ptr &other);
-    linked_ptr& operator=(const linked_ptr &other);
-
+    linked_ptr(T* target);
+    linked_ptr(linked_ptr& other);
+    linked_ptr(linked_ptr&& other);
+    linked_ptr& operator=(linked_ptr& other);
     ~linked_ptr();
+
+    T& operator*();
+    T* operator->();
+
 private:
     T* ptr;
     linked_ptr* left;
@@ -17,47 +21,82 @@ private:
 };
 
 template <typename T>
-linked_ptr<T>::linked_ptr(T &target):
-    ptr(target),
-    left(nullptr),
-    right(nullptr)
+linked_ptr<T>::linked_ptr(T* target)
+    : ptr(target)
+    , left(nullptr)
+    , right(nullptr)
 {}
 
 template <typename T>
-linked_ptr<T>::linked_ptr(const linked_ptr &other):
-    ptr(other->ptr),
-    right(other->right),
-    left(other)
+linked_ptr<T>::linked_ptr(linked_ptr& other)
+    : ptr(other.ptr)
+    , left(&other)
+    , right(other.right)
 {
-    if(other->right != nullptr)
-        other->right->left = *this;
-    other->right = *this;
+    if(right)
+        right->left = this;
+    other.right = this;
 }
 
 template <typename T>
-linked_ptr<T>::operator=(const linked_ptr &other)
+linked_ptr<T>::linked_ptr(linked_ptr&& other)
+    : ptr(other.ptr)
+    , left(other.left)
+    , right(other.right)
 {
-    ptr = other->ptr;
-    right = other->right;
-    left = other;
-    if(other->right != nullptr)
-        other->right->left = *this;
-    other->right = *this;
+    if(left)
+        left->right = this;
+    if(right)
+        right->left = this;
+}
+
+template <typename T>
+linked_ptr<T>& linked_ptr<T>::operator=(linked_ptr& other)
+{
+    if(right)
+        right->left = left;
+    if(left)
+        left->right = right;
+
+    if(!left && !right)
+        delete ptr;
+
+    ptr = other.ptr;
+    right = other.right;
+    left = &other;
+
+    if(right)
+        right->left = this;
+    other.right = this;
+
+    return *this;
 }
 
 template <typename T>
 linked_ptr<T>::~linked_ptr()
 {
-    if(left == nullptr && right == nullptr)
+    if(!left && !right)
     {
         delete ptr;
         return;
     }
 
-    if(left != nullptr)
+    if(left)
         left->right = right;
-    if(right != nullptr)
+    if(right)
         right->left = left;
+}
+
+template <typename T>
+T& linked_ptr<T>::operator*()
+{
+    return *ptr;
+}
+
+template <typename T>
+T* linked_ptr<T>::operator->()
+{
+    return ptr;
 }
 
 #endif // LINKED_PTR_H
