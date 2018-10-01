@@ -6,13 +6,15 @@ struct shared_ptr
 {
 public:
     shared_ptr(T* ptr);
-    shared_ptr(shared_ptr& other);
+    shared_ptr(const shared_ptr& other);
     shared_ptr(shared_ptr&& other);
-    shared_ptr& operator=(shared_ptr& other);
+    shared_ptr& operator=(const shared_ptr& other);
 
     ~shared_ptr();
 
 private:
+    void decrease_count();
+
     struct pointer;
     pointer* ptr;
 };
@@ -22,8 +24,9 @@ struct shared_ptr<T>::pointer
 {
 public:
     pointer(T* object);
+    ~pointer();
 
-    size_t count;
+    mutable size_t count;
     T* object;
 };
 
@@ -33,32 +36,58 @@ shared_ptr<T>::pointer::pointer(T* object)
     , object(object)
 {}
 
-template <typename T>
-shared_ptr<T>::shared_ptr(shared_ptr& other)
+template<typename T>
+shared_ptr<T>::pointer::~pointer()
 {
-    other->ptr.count++;
-    ptr = other->ptr;
+    delete object;
+}
+
+template <typename T>
+shared_ptr<T>::shared_ptr(T* object)
+    : ptr(new pointer(object))
+{}
+
+template <typename T>
+shared_ptr<T>::shared_ptr(const shared_ptr& other)
+{
+    other.ptr->count++;
+    ptr = other.ptr;
 }
 
 template <typename T>
 shared_ptr<T>::shared_ptr(shared_ptr&& other)
     : ptr(other.ptr)
-{}
+{
+    other.ptr = nullptr;
+}
+
+template<typename T>
+void shared_ptr<T>::decrease_count()
+{
+    ptr->count--;
+    if (ptr->count == 0)
+        delete ptr;
+}
 
 template <typename T>
-shared_ptr<T>& shared_ptr<T>::operator=(shared_ptr& other)
+shared_ptr<T>& shared_ptr<T>::operator=(const shared_ptr& other)
 {
-    other->ptr.count++;
+    if (ptr == other.ptr)
+        return *this;
+
+    other.ptr->count++;
+    decrease_count();
     ptr = other.ptr;
+
+    return *this;
 }
 
 template <typename T>
 shared_ptr<T>::~shared_ptr()
 {
-    if(ptr->count == 1)
-        delete ptr;
-    else
-        --ptr->count;
+    if (!ptr)
+        return;
+    decrease_count();
 }
 
 #endif // SHARED_PTR_H
