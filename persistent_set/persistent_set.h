@@ -4,24 +4,20 @@
 #include <vector>
 #include <iostream>
 #include <memory>
+#include "shared_ptr.h"
 
-
-using std::shared_ptr;
-using std::pair;
-
-//T should be comparable
-template <typename T>
+template <typename T, template <typename> class P = shared_ptr>
 struct persistent_set {
 public:
     struct iterator;
 
-    persistent_set();
-    persistent_set(const persistent_set& other);
-    persistent_set& operator=(const persistent_set& other) noexcept;
-    ~persistent_set();
+    persistent_set() = default;
+    persistent_set(const persistent_set& other) noexcept = default;
+    persistent_set& operator=(const persistent_set& other) noexcept = default;
+    ~persistent_set() = default;
 
     iterator find(const T& value);
-    std::pair<typename persistent_set<T>::iterator, bool> insert(const T& value);
+    std::pair<iterator, bool> insert(const T& value);
     void erase(iterator it);
 
     iterator begin() const;
@@ -32,14 +28,16 @@ public:
 private:
     struct node_t;
 
-    node_t* copy_path(node_t* last);
+    iterator copy(iterator it);
 
-    std::unique_ptr< node_t > root;
+    P<node_t> root;
 };
 
-template<typename T>
+template<typename T, typename P>
 struct persistent_set<T>::iterator {
 public:
+    iterator() = default;
+
     T const& operator*() const;
 
     iterator& operator++();
@@ -47,177 +45,270 @@ public:
     iterator& operator--();
     iterator operator--(int);
 
+    bool operator==(const iterator& other) const;
+    bool operator!=(const iterator& other);
+
 private:
-    iterator(node_t* node);
-    node_t* node;
+    iterator(const std::vector<node_t*>& nodes, persistent_set<T>* owner);
+    iterator(const std::vector<P<node_t>>& nodes, persistent_set<T>* owner);
+
+    std::vector<node_t*> path;
+    persistent_set<T>* owner;
 
     friend struct persistent_set;
 };
 
-template<typename T>
+template<typename T, typename P>
 struct persistent_set<T>::node_t {
 public:
     node_t() = delete;
     node_t(const T& value);
-    node_t(const node_t& other);
-    node_t& operator=(const node_t& other);
-
+    node_t(const node_t& other) = default;
+    node_t& operator=(const node_t& other) = default;
 
     T value;
-
-    node_t* parent;
-    shared_ptr< node_t > left;
-    shared_ptr< node_t > right;
+    std::array<P<node_t>, 2> children;
 };
 
-template<typename T>
-persistent_set<T>::persistent_set() 
-    : root(nullptr)
-{}
-
-template<typename T>
-persistent_set<T>::persistent_set(const persistent_set<T>& other)
-{
-    if (other.root.get()) {
-        root.reset(new node_t(other.root->value));
-        root->left = other.root->left;
-        root->right = other.root->right;
-    }
-    else {
-        root.reset(nullptr);
-    }
-}
-
-template<typename T>
-persistent_set<T>& persistent_set<T>::operator=(const persistent_set<T>& other) noexcept {
-    if (this == &other)
-        return *this;
-    if (other.root.get()) {
-        root->value = other.root->value;
-        root->left = other.root->left;
-        root->right = other.root->right;
-    } else {
-        root.reset(nullptr);
-    }
-    return *this;
-}
-
-template<typename T>
-persistent_set<T>::~persistent_set() {
-}
-
-template<typename T>
+template<typename T, typename P>
 typename persistent_set<T>::iterator persistent_set<T>::find(const T& value) {
-    if (empty())
-        return end();
-    node_t* current = root.get();
-    while (current) {
-        if (current->value == value)
-            return iterator(current);
-        if (current->value > value)
-            current = current->left.get();
-        else
-            current = current->right.get();
+    std::vector<node_t*> path;
+    node_t* cur = root.get();
+    while(cur != nullptr) {
+        path.push_back(cur);
+        T cur_value = cur->value;
+        if(value == cur_value) {
+            return iterator(path, this);
+        }
+        int id = (value < cur_value) ? 0 : 1;
+        cur = cur->children[id].get();
     }
     return end();
 }
 
-template<typename T>
-typename persistent_set<T>::node_t* persistent_set<T>::copy_path(typename persistent_set<T>::node_t* last)
-{
-    persistent_set<T> other = *this;
-    node_t* old_current = root.get();
-    node_t* new_current = other.root.get();
-    T value = last->value;
-    
-    while (old_current != last) {
-        node_t* current_copy;
-        node_t* added;
-        if (old_current->value > value) {
-            current_copy = old_current->left.get();
-            added = new node_t(*current_copy);
-            new_current->left.reset(added);
-        } else {
-            current_copy = old_current->right.get();
-            added = new node_t(*current_copy);
-            new_current->right.reset(added);
-        }
-        added->parent = new_current;
-        new_current = added;
-        old_current = current_copy;
+template<typename T, typename P>
+typename persistent_set<T>::iterator persistent_set<T>::copy(iterator it) {
+    std::vector<P<node_t>> path;
+    for(node_t* node : it.path) {
+        path.push_back(std::make_shared<node_t>(*node));
     }
-
-    return new_current;
+    for(size_t i = 0; i + 1 < path.size(); ++i) {
+        node_t* node = path[i].get();
+        node_t* next_node = it.path[i + 1];
+        size_t id = (node->children[0].get() == next_node) ? 0 : 1;
+        node->children[id] = path[i + 1];
+    }
+    root = path[0];
+    return iterator(path, this);
 }
 
-template<typename T>
+template<typename T, typename P>
 std::pair<typename persistent_set<T>::iterator, bool> persistent_set<T>::insert(const T& value) {
-    if (empty()) {
-        persistent_set<T> other;
-        other.root.reset(new node_t(value));
-        return{ iterator(other.root.get()), true };
+    iterator it = find(value);
+    if(it != end()) {
+        return {it, false};
     }
-    node_t* current = root.get();
-    node_t* last = nullptr;
-    bool is_less;
-    while (current) {
-        if (current->value == value) {
-            return{ iterator(current), false };
+
+    node_t* cur = root.get();
+    if(cur == nullptr) {
+        root = std::make_shared<node_t>(value);
+        return {iterator({root.get()}, this), true};
+    }
+
+    root = std::make_shared<node_t>(*root.get());
+    cur = root.get();
+    std::vector<node_t*> path;
+    while(true) {
+        path.push_back(cur);
+        int id = (cur->value > value) ? 0 : 1;
+        node_t* child = cur->children[id].get();
+        if(child == nullptr) {
+            cur->children[id] = std::make_shared<node_t>(value);
+            path.push_back(cur->children[id].get());
+            return {iterator(path, this), true};
+        } else {
+            cur->children[id] = std::make_shared<node_t>(*child);
+            cur = cur->children[id].get();
         }
-        is_less = current->value > value;
-        if (is_less)
-            current = current->left.get();
-        else
-            current = current->right.get();
     }
-    node_t* copy = copy_path(last);
-    node_t* added;
-    if (is_less) {
-        copy->left.reset(new node_t(value));
-        added = copy->left.get();
+}
+
+template<typename T, typename P>
+void persistent_set<T>::erase(iterator __it) {
+    if(__it.path.back()->children[1].get() == nullptr) {
+        iterator it = copy(__it);
+
+        node_t* node = it.path.back();
+        if(node == root.get()) {
+            root = node->children[0];
+        } else {
+            node_t* parent = it.path[it.path.size() - 2];
+            int id = (parent->children[0].get() == node) ? 0 : 1;
+            parent->children[id] = node->children[0];
+        }
     } else {
-        copy->right.reset(new node_t(value));
-        added = copy->right.get();
-    }
+        iterator __jt = __it;
+        __jt++;
 
-    added->parent = copy;
-    return{ iterator(added), true };
-}
+        iterator jt = copy(__jt);
+        iterator it = iterator(std::vector<node_t*>(jt.path.begin(), jt.path.begin() + __it.path.size()), this);
 
-template<typename T>
-void persistent_set<T>::erase(iterator it) {
-    node_t* node = it->node;
-    T value = node->value;
-    node* current = root;
-    while (current) {
-        if (current->value == value) {
-            //node* copy_path()
+        node_t* node = it.path.back();
+        node_t* substituted = jt.path.back();
+        substituted->children[0] = node->children[0];
+
+        P<node_t> temp;
+
+        if(it.path.size() + 1 != jt.path.size()) {
+            node_t* substituted_parent = jt.path[jt.path.size() - 2];
+            temp = substituted_parent->children[0];
+            substituted_parent->children[0] = substituted->children[1];
+            substituted->children[1] = node->children[1];
+        } else {
+            temp = node->children[1];
         }
-        break;
+
+        if(root.get() == node) {
+            root = temp;
+        } else {
+            node_t* parent = it.path[it.path.size() - 2];
+            int id = (parent->children[0].get() == node) ? 0 : 1;
+            parent->children[id] = temp;
+
+        }
+
     }
 }
 
-template<typename T>
+template<typename T, typename P>
 typename persistent_set<T>::iterator persistent_set<T>::begin() const {
-    return iterator(root.get());
+    node_t* cur = root.get();
+    if(cur == nullptr) {
+        return end();
+    }
+
+    std::vector<node_t*> path;
+    while(cur != nullptr) {
+        path.push_back(cur);
+        cur = cur->children[0].get();
+    }
+
+    return iterator(path, const_cast<persistent_set<T>*>(this));
 }
 
-template<typename T>
+template<typename T, typename P>
 typename persistent_set<T>::iterator persistent_set<T>::end() const {
-    return iterator(nullptr);
+    return iterator(std::vector<node_t*>(), const_cast<persistent_set<T>*>(this));
 }
 
-template<typename T>
-bool persistent_set<T>::empty() const {
-    return root.get() ? true : false;
+template<typename T, typename P>
+persistent_set<T>::iterator::iterator(const std::vector<node_t*>& path, persistent_set<T>* owner)
+    : path(path)
+    , owner(owner)
+{}
+
+template<typename T, typename P>
+persistent_set<T>::iterator::iterator(const std::vector<P<node_t>>& nodes, persistent_set<T>* owner)
+    : path()
+    , owner(owner) {
+    for(const P<node_t>& node : nodes)
+        path.push_back(node.get());
 }
 
-template<typename T>
-persistent_set<T>::node_t::node_t(const T& value) 
+template<typename T, typename P>
+T const& persistent_set<T>::iterator::operator*() const {
+    return path.back()->value;
+}
+
+template<typename T, typename P>
+typename persistent_set<T>::iterator& persistent_set<T>::iterator::operator++() {
+    node_t* cur = path.back();
+    if(cur->children[1] != nullptr) {
+        cur = cur->children[1].get();
+        while(cur != nullptr) {
+            path.push_back(cur);
+            cur = cur->children[0].get();
+        }
+    } else {
+        node_t* prev = cur;
+        path.pop_back();
+        while(!path.empty()) {
+            node_t* cur = path.back();
+            if(prev == cur->children[0].get()) {
+                break;
+            }
+            prev = cur;
+            path.pop_back();
+        }
+    }
+    return *this;
+}
+
+template<typename T, typename P>
+typename persistent_set<T>::iterator persistent_set<T>::iterator::operator++(int) {
+    iterator result(*this);
+    ++(*this);
+    return result;
+}
+
+template<typename T, typename P>
+typename persistent_set<T>::iterator& persistent_set<T>::iterator::operator--() {
+    // end() case
+    if(path.empty()) {
+        node_t* cur = owner->root.get();
+        while(cur != nullptr) {
+            path.push_back(cur);
+            cur = cur->children[1].get();
+        }
+        return *this;
+    }
+
+    node_t* cur = path.back();
+    if(cur->children[0].get() != nullptr) {
+        cur = cur->children[0].get();
+        while(cur != nullptr) {
+            path.push_back(cur);
+            cur = cur->children[1].get();
+        }
+    } else {
+        node_t* prev = cur;
+
+        while(true) {
+            path.pop_back();
+            cur = path.back();
+            if(cur->children[1].get() == prev) {
+                break;
+            }
+            prev = cur;
+        }
+    }
+    return *this;
+}
+
+template<typename T, typename P>
+typename persistent_set<T>::iterator persistent_set<T>::iterator::operator--(int) {
+    iterator result(*this);
+    --(*this);
+    return result;
+}
+
+template<typename T, typename P>
+bool persistent_set<T>::iterator::operator==(const persistent_set<T>::iterator& other) const {
+    if(path.empty() || other.path.empty()) {
+        return path.empty() && other.path.empty();
+    }
+    return path.back() == other.path.back();
+}
+
+template<typename T, typename P>
+bool persistent_set<T>::iterator::operator!=(const persistent_set<T>::iterator& other) {
+    return !(*this == other);
+}
+
+template<typename T, typename P>
+persistent_set<T>::node_t::node_t(const T& value)
     : value(value)
-    , parent(nullptr)
-    , left(nullptr)
-    , right(nullptr)
+    , children({nullptr, nullptr})
 {}
 
 #endif //PERSISTENT_SET_H

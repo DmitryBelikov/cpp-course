@@ -5,7 +5,10 @@ template <typename T>
 struct shared_ptr
 {
 public:
-    shared_ptr(T* ptr);
+
+    template<typename... Args>
+    shared_ptr(const Args&... args);
+
     shared_ptr(const shared_ptr& other);
     shared_ptr(shared_ptr&& other);
     shared_ptr& operator=(const shared_ptr& other);
@@ -42,10 +45,11 @@ shared_ptr<T>::pointer::~pointer()
     delete object;
 }
 
-template <typename T>
-shared_ptr<T>::shared_ptr(T* object)
-    : ptr(new pointer(object))
+template<typename T, typename... Args>
+shared_ptr<T>::shared_ptr(const Args&... args)
+    : ptr(new T(args))
 {}
+
 
 template <typename T>
 shared_ptr<T>::shared_ptr(const shared_ptr& other)
