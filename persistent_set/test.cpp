@@ -9,7 +9,11 @@
 #include "linked_ptr.h"
 #include "shared_ptr.h"
 
-using namespace std;
+using std::vector;
+using std::swap;
+using std::ostream;
+using std::cerr;
+using std::set;
 
 template <typename T>
 vector<T> vec(persistent_set<T> const& s) {
@@ -389,6 +393,7 @@ std::vector < std::vector < int > > test2(std::string const& msg) {
 	int distr_k = 7;
 	std::vector < Set > ss(num_of_sets);
 	for (int i = 0; i < 87; ++i) {
+        //std::cerr << i << std::endl;
 		int r = rand() & distr_k;
 		if (r == 0) {
 			int j = rand() % num_of_sets;
@@ -419,10 +424,10 @@ std::vector < std::vector < int > > test2(std::string const& msg) {
 }
 
 
-//TEST(test_set, random) {
-//    auto r1 = test<persistent_set<int, shared_ptr>>("shared_ptr");
-//    auto r2 = test<persistent_set<int, linked_ptr>>("linked_ptr");
-//    EXPECT_EQ(r1, r2);
-//    auto r3 = test<set<int>>("std::set  ");
-//    EXPECT_EQ(r2, r3);
-//}
+TEST(test_set, random) {
+    auto r1 = test<persistent_set<int, shared_ptr>>("shared_ptr");
+    auto r2 = test<persistent_set<int, linked_ptr>>("linked_ptr");
+    EXPECT_EQ(r1, r2);
+    auto r3 = test<set<int>>("std::set  ");
+    EXPECT_EQ(r2, r3);
+}

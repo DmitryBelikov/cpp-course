@@ -5,9 +5,8 @@
 #include <iostream>
 #include <memory>
 #include "shared_ptr.h"
-#include "linked_ptr.h"
 
-template <typename T, template <class> class P = linked_ptr>
+template <typename T, template <typename> class P = shared_ptr>
 struct persistent_set {
 public:
     struct iterator;
@@ -195,12 +194,12 @@ typename persistent_set<T, P>::iterator persistent_set<T, P>::begin() const {
         cur = cur->children[0].get();
     }
 
-    return iterator(path, const_cast<persistent_set<T>*>(this));
+    return iterator(path, const_cast<persistent_set<T, P>*>(this));
 }
 
 template <typename T, template <class> class P>
 typename persistent_set<T, P>::iterator persistent_set<T, P>::end() const {
-    return iterator(std::vector<node_t*>(), const_cast<persistent_set<T>*>(this));
+    return iterator(std::vector<node_t*>(), const_cast<persistent_set<T, P>*>(this));
 }
 
 template <typename T, template <class> class P>
