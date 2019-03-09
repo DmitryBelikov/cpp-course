@@ -12,18 +12,16 @@ public:
     struct iterator;
 
     persistent_set() = default;
-    persistent_set(const persistent_set& other) = default;
-    persistent_set& operator=(const persistent_set& other) = default;
+    persistent_set(const persistent_set& other) noexcept = default;
+    persistent_set& operator=(const persistent_set& other) noexcept = default;
     ~persistent_set() = default;
 
-    iterator find(const T& value);
+    iterator find(const T& value) noexcept;
     std::pair<iterator, bool> insert(const T& value);
     void erase(iterator it);
 
     iterator begin() const;
     iterator end() const;
-
-    bool empty() const;
 
 private:
     struct node_t;
@@ -36,17 +34,17 @@ private:
 template <typename T, template <class> class P>
 struct persistent_set<T, P>::iterator {
 public:
-    iterator() = default;
+    iterator() noexcept = default;
 
-    T const& operator*() const;
+    T const& operator*() const noexcept;
 
     iterator& operator++();
     iterator operator++(int);
     iterator& operator--();
     iterator operator--(int);
 
-    bool operator==(const iterator& other) const;
-    bool operator!=(const iterator& other);
+    bool operator==(const iterator& other) const noexcept;
+    bool operator!=(const iterator& other) noexcept;
 
 private:
     iterator(const std::vector<node_t*>& nodes, persistent_set<T, P>* owner);
@@ -71,7 +69,7 @@ public:
 };
 
 template <typename T, template <class> class P>
-typename persistent_set<T, P>::iterator persistent_set<T, P>::find(const T& value) {
+typename persistent_set<T, P>::iterator persistent_set<T, P>::find(const T& value) noexcept {
     std::vector<node_t*> path;
     node_t* cur = root.get();
     while(cur != nullptr) {
@@ -217,7 +215,7 @@ persistent_set<T, P>::iterator::iterator(const std::vector<P<node_t>>& nodes, pe
 }
 
 template <typename T, template <class> class P>
-T const& persistent_set<T, P>::iterator::operator*() const {
+T const& persistent_set<T, P>::iterator::operator*() const noexcept {
     return path.back()->value;
 }
 
@@ -294,7 +292,7 @@ typename persistent_set<T, P>::iterator persistent_set<T, P>::iterator::operator
 }
 
 template <typename T, template <class> class P>
-bool persistent_set<T, P>::iterator::operator==(const persistent_set<T, P>::iterator& other) const {
+bool persistent_set<T, P>::iterator::operator==(const persistent_set<T, P>::iterator& other) const noexcept {
     if(path.empty() || other.path.empty()) {
         return path.empty() && other.path.empty();
     }
@@ -302,7 +300,7 @@ bool persistent_set<T, P>::iterator::operator==(const persistent_set<T, P>::iter
 }
 
 template <typename T, template <class> class P>
-bool persistent_set<T, P>::iterator::operator!=(const persistent_set<T, P>::iterator& other) {
+bool persistent_set<T, P>::iterator::operator!=(const persistent_set<T, P>::iterator& other) noexcept {
     return !(*this == other);
 }
 
