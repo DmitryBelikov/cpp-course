@@ -1,6 +1,8 @@
 #ifndef SHARED_PTR_H
 #define SHARED_PTR_H
 
+#include <cassert>
+
 template <typename T>
 struct shared_ptr {
 public:
@@ -17,9 +19,12 @@ public:
 
 private:
     void decrease_count();
+    void call_deleter();
 
     struct pointer;
     pointer* ptr;
+
+    pointer* stored_ptr = nullptr;
 };
 
 template <typename T>
@@ -40,12 +45,13 @@ shared_ptr<T>::pointer::pointer(T* object)
 
 template<typename T>
 shared_ptr<T>::pointer::~pointer() {
-    delete object;
+    if(object)
+        delete object;
 }
 
 template <typename T>
 shared_ptr<T>::shared_ptr()
-    : ptr(nullptr)
+    : ptr(new pointer(nullptr))
 {}
 
 template <typename T>
@@ -54,9 +60,11 @@ shared_ptr<T>::shared_ptr(T* object)
 {}
 
 template <typename T>
-shared_ptr<T>::shared_ptr(const shared_ptr& other) {
-    other.ptr->count++;
-    ptr = other.ptr;
+shared_ptr<T>::shared_ptr(const shared_ptr& other)
+    : ptr(other.ptr) {
+    if(ptr) {
+        ptr->count++;
+    }
 }
 
 template <typename T>
@@ -67,9 +75,21 @@ shared_ptr<T>::shared_ptr(shared_ptr&& other)
 
 template<typename T>
 void shared_ptr<T>::decrease_count() {
+    if(!ptr)
+        return;
+    assert(ptr->count > 0);
     ptr->count--;
-    if (ptr->count == 0)
-        delete ptr;
+    if(ptr->count == 0) {
+        stored_ptr = ptr;
+    }
+}
+
+template<typename T>
+void shared_ptr<T>::call_deleter() {
+    if(stored_ptr != nullptr) {
+        delete stored_ptr;
+        stored_ptr = nullptr;
+    }
 }
 
 template <typename T>
@@ -77,18 +97,18 @@ shared_ptr<T>& shared_ptr<T>::operator=(const shared_ptr& other) {
     if (ptr == other.ptr)
         return *this;
 
-    other.ptr->count++;
     decrease_count();
     ptr = other.ptr;
-
+    if(ptr)
+        ptr->count++;
+    call_deleter();
     return *this;
 }
 
 template <typename T>
 shared_ptr<T>::~shared_ptr() {
-    if (!ptr)
-        return;
     decrease_count();
+    call_deleter();
 }
 
 template <typename T>
@@ -100,13 +120,8 @@ T* shared_ptr<T>::get() const {
 
 template <typename T>
 void shared_ptr<T>::reset(T* object) {
-    if(ptr) {
-        if(ptr->object == object) {
-            return;
-        }
-        decrease_count();
-    }
-    ptr = new pointer(object);
+    shared_ptr<T> temp(object);
+    *this = temp;
 }
 
 #endif // SHARED_PTR_H

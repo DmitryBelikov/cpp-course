@@ -5,8 +5,9 @@
 #include <iostream>
 #include <memory>
 #include "shared_ptr.h"
+#include "linked_ptr.h"
 
-template <typename T, template <class> class P = shared_ptr>
+template <typename T, template <class> class P = linked_ptr>
 struct persistent_set {
 public:
     struct iterator;
@@ -112,11 +113,11 @@ std::pair<typename persistent_set<T, P>::iterator, bool> persistent_set<T, P>::i
 
     node_t* cur = root.get();
     if(cur == nullptr) {
-        root = P<node_t>(new node_t(value));
+        root.reset(new node_t(value));
         return {iterator(std::vector<node_t*>({root.get()}), this), true};
     }
 
-    root = P<node_t>(new node_t(*root.get()));
+    root.reset(new node_t(*root.get()));
     cur = root.get();
     std::vector<node_t*> path;
     while(true) {
@@ -124,11 +125,11 @@ std::pair<typename persistent_set<T, P>::iterator, bool> persistent_set<T, P>::i
         int id = (cur->value > value) ? 0 : 1;
         node_t* child = cur->children[id].get();
         if(child == nullptr) {
-            cur->children[id] = P<node_t>(new node_t(value));
+            cur->children[id].reset(new node_t(value));
             path.push_back(cur->children[id].get());
             return {iterator(path, this), true};
         } else {
-            cur->children[id] = P<node_t>(new node_t(*child));
+            cur->children[id].reset(new node_t(*child));
             cur = cur->children[id].get();
         }
     }
