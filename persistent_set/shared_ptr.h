@@ -11,6 +11,7 @@ public:
     shared_ptr(const shared_ptr& other);
     shared_ptr(shared_ptr&& other);
     shared_ptr& operator=(const shared_ptr& other);
+    shared_ptr& operator=(shared_ptr&& other);
 
     ~shared_ptr();
 
@@ -101,6 +102,17 @@ shared_ptr<T>& shared_ptr<T>::operator=(const shared_ptr& other) {
     ptr = other.ptr;
     if(ptr)
         ptr->count++;
+    call_deleter();
+    return *this;
+}
+
+template<typename T>
+shared_ptr<T>& shared_ptr<T>::operator=(shared_ptr&& other) {
+    if(ptr == other.ptr)
+        return *this;
+    decrease_count();
+    ptr = other.ptr;
+    other.ptr = nullptr;
     call_deleter();
     return *this;
 }

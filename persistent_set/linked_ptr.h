@@ -10,6 +10,8 @@ public:
     linked_ptr(const linked_ptr& other);
     linked_ptr(linked_ptr&& other);
     linked_ptr& operator=(const linked_ptr& other);
+    linked_ptr& operator=(linked_ptr&& other);
+
     ~linked_ptr();
 
     T& operator*();
@@ -96,6 +98,38 @@ linked_ptr<T>& linked_ptr<T>::operator=(const linked_ptr& other)
 
     return *this;
 }
+
+template<typename T>
+linked_ptr<T>& linked_ptr<T>::operator=(linked_ptr&& other) {
+    if(ptr == other.ptr) {
+        return this;
+    }
+
+    if (right)
+        right->left = left;
+    if (left)
+        left->right = right;
+
+    if (!left && !right)
+        stored_ptr = ptr;
+
+    ptr = other.ptr;
+    right = other.right;
+    left = other.left;
+
+    if (right)
+        right->left = this;
+    if (left)
+        left->right = this;
+    other.left = nullptr;
+    other.right = nullptr;
+    other.ptr = nullptr;
+
+    call_deleter();
+
+    return *this;
+}
+
 
 template<typename T>
 void linked_ptr<T>::call_deleter() {
