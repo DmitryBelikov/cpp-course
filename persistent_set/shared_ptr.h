@@ -8,14 +8,14 @@ struct shared_ptr {
 public:
     shared_ptr();
     shared_ptr(T* ptr);
-    shared_ptr(const shared_ptr& other);
-    shared_ptr(shared_ptr&& other);
-    shared_ptr& operator=(const shared_ptr& other);
-    shared_ptr& operator=(shared_ptr&& other);
+    shared_ptr(const shared_ptr& other) noexcept;
+    shared_ptr(shared_ptr&& other) noexcept;
+    shared_ptr& operator=(const shared_ptr& other) noexcept;
+    shared_ptr& operator=(shared_ptr&& other) noexcept;
 
     ~shared_ptr();
 
-    T* get() const;
+    T* get() const noexcept;
     void reset(T* ptr);
 
 private:
@@ -61,7 +61,7 @@ shared_ptr<T>::shared_ptr(T* object)
 {}
 
 template <typename T>
-shared_ptr<T>::shared_ptr(const shared_ptr& other)
+shared_ptr<T>::shared_ptr(const shared_ptr& other) noexcept
     : ptr(other.ptr) {
     if(ptr) {
         ptr->count++;
@@ -69,7 +69,7 @@ shared_ptr<T>::shared_ptr(const shared_ptr& other)
 }
 
 template <typename T>
-shared_ptr<T>::shared_ptr(shared_ptr&& other)
+shared_ptr<T>::shared_ptr(shared_ptr&& other) noexcept
     : ptr(other.ptr) {
     other.ptr = nullptr;
 }
@@ -94,7 +94,7 @@ void shared_ptr<T>::call_deleter() {
 }
 
 template <typename T>
-shared_ptr<T>& shared_ptr<T>::operator=(const shared_ptr& other) {
+shared_ptr<T>& shared_ptr<T>::operator=(const shared_ptr& other) noexcept {
     if (ptr == other.ptr)
         return *this;
 
@@ -107,7 +107,7 @@ shared_ptr<T>& shared_ptr<T>::operator=(const shared_ptr& other) {
 }
 
 template<typename T>
-shared_ptr<T>& shared_ptr<T>::operator=(shared_ptr&& other) {
+shared_ptr<T>& shared_ptr<T>::operator=(shared_ptr&& other) noexcept {
     if(ptr == other.ptr)
         return *this;
     decrease_count();
@@ -124,7 +124,7 @@ shared_ptr<T>::~shared_ptr() {
 }
 
 template <typename T>
-T* shared_ptr<T>::get() const {
+T* shared_ptr<T>::get() const noexcept {
     if(!ptr)
         return nullptr;
     return ptr->object;

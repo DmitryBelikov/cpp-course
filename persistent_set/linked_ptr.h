@@ -5,20 +5,20 @@ template <typename T>
 struct linked_ptr
 {
 public:
-    linked_ptr();
-    linked_ptr(T* target);
-    linked_ptr(const linked_ptr& other);
-    linked_ptr(linked_ptr&& other);
-    linked_ptr& operator=(const linked_ptr& other);
-    linked_ptr& operator=(linked_ptr&& other);
+    linked_ptr() noexcept;
+    linked_ptr(T* target) noexcept;
+    linked_ptr(const linked_ptr& other) noexcept;
+    linked_ptr(linked_ptr&& other) noexcept;
+    linked_ptr& operator=(const linked_ptr& other) noexcept;
+    linked_ptr& operator=(linked_ptr&& other) noexcept;
 
     ~linked_ptr();
 
     T& operator*();
     T* operator->();
 
-    T* get() const;
-    void reset(T* object);
+    T* get() const noexcept;
+    void reset(T* object) noexcept;
 
 private:
     void call_deleter();
@@ -31,21 +31,21 @@ private:
 };
 
 template<typename T>
-linked_ptr<T>::linked_ptr()
+linked_ptr<T>::linked_ptr() noexcept
     : ptr(nullptr)
     , left(nullptr)
     , right(nullptr)
 {}
 
 template <typename T>
-linked_ptr<T>::linked_ptr(T* target)
+linked_ptr<T>::linked_ptr(T* target) noexcept
     : ptr(target)
     , left(nullptr)
     , right(nullptr)
 {}
 
 template <typename T>
-linked_ptr<T>::linked_ptr(const linked_ptr<T>& other)
+linked_ptr<T>::linked_ptr(const linked_ptr<T>& other) noexcept
     : ptr(other.ptr)
     , left(const_cast< linked_ptr<T>* >(&other))
     , right(other.right)
@@ -56,7 +56,7 @@ linked_ptr<T>::linked_ptr(const linked_ptr<T>& other)
 }
 
 template <typename T>
-linked_ptr<T>::linked_ptr(linked_ptr&& other)
+linked_ptr<T>::linked_ptr(linked_ptr&& other) noexcept
     : ptr(other.ptr)
     , left(other.left)
     , right(other.right)
@@ -73,7 +73,7 @@ linked_ptr<T>::linked_ptr(linked_ptr&& other)
 }
 
 template <typename T>
-linked_ptr<T>& linked_ptr<T>::operator=(const linked_ptr& other)
+linked_ptr<T>& linked_ptr<T>::operator=(const linked_ptr& other) noexcept
 {
     if (ptr == other.ptr)
         return *this;
@@ -100,7 +100,7 @@ linked_ptr<T>& linked_ptr<T>::operator=(const linked_ptr& other)
 }
 
 template<typename T>
-linked_ptr<T>& linked_ptr<T>::operator=(linked_ptr&& other) {
+linked_ptr<T>& linked_ptr<T>::operator=(linked_ptr&& other) noexcept {
     if(ptr == other.ptr) {
         return this;
     }
@@ -168,12 +168,12 @@ T* linked_ptr<T>::operator->()
 }
 
 template <typename T>
-T* linked_ptr<T>::get() const {
+T* linked_ptr<T>::get() const noexcept {
     return ptr;
 }
 
 template <typename T>
-void linked_ptr<T>::reset(T* object) {
+void linked_ptr<T>::reset(T* object) noexcept {
     linked_ptr<T> temp(object);
     *this = temp;
 }
