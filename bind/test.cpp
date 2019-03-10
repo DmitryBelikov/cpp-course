@@ -77,22 +77,22 @@ TEST(testBind, copyFixedArgument) {
     EXPECT_EQ(my_struct::logger, "cc");
 }
 
-//TEST(testBind, movePlaceholder) {
-//    my_struct::logger = "";
-//    auto w = bind(f, _1);
-//    EXPECT_EQ(my_struct::logger, "");
-//    w(my_struct());
-//    EXPECT_EQ(my_struct::logger, "m");
-//}
+TEST(testBind, movePlaceholder) {
+    my_struct::logger = "";
+    auto w = bind(f, _1);
+    EXPECT_EQ(my_struct::logger, "");
+    w(my_struct());
+    EXPECT_EQ(my_struct::logger, "m");
+}
 
-//TEST(testBind, copyPlaceholder) {
-//    my_struct::logger = "";
-//    my_struct x;
-//    auto w = bind(f, _1);
-//    EXPECT_EQ(my_struct::logger, "");
-//    w(x);
-//    EXPECT_EQ(my_struct::logger, "c");
-//}
+TEST(testBind, copyPlaceholder) {
+    my_struct::logger = "";
+    my_struct x;
+    auto w = bind(f, _1);
+    EXPECT_EQ(my_struct::logger, "");
+    w(x);
+    EXPECT_EQ(my_struct::logger, "c");
+}
 
 //void g(my_struct, my_struct) {
 
@@ -131,80 +131,81 @@ struct simpleFo {
 };
 std::string simpleFo::logger;
 
-//TEST(testBind, moveSimpleFunctionalObject) {
-//    simpleFo::logger = "";
-//    auto w = bind(simpleFo());
-//    EXPECT_EQ(simpleFo::logger, "m");
-//    w();
-//    EXPECT_EQ(simpleFo::logger, "m");
-//}
+TEST(testBind, moveSimpleFunctionalObject) {
+    simpleFo::logger = "";
+    auto w = bind(simpleFo());
+    //bind(simpleFo());
+    EXPECT_EQ(simpleFo::logger, "m");
+    w();
+    EXPECT_EQ(simpleFo::logger, "m");
+}
 
-//TEST(testBind, copySimpleFunctionalObject) {
-//    simpleFo::logger = "";
-//    simpleFo x;
-//    auto w = bind(x);
-//    EXPECT_EQ(simpleFo::logger, "c");
-//    w();
-//    EXPECT_EQ(simpleFo::logger, "c");
-//}
+TEST(testBind, copySimpleFunctionalObject) {
+    simpleFo::logger = "";
+    simpleFo x;
+    auto w = bind(x);
+    EXPECT_EQ(simpleFo::logger, "c");
+    w();
+    EXPECT_EQ(simpleFo::logger, "c");
+}
 
-//bool comparator(int a, int b) {
-//    return bind([](int a, int b) -> bool {return a > b; }, _1, _2)(a, b);
-//}
+bool comparator(int a, int b) {
+    return bind([](int a, int b) -> bool {return a > b; }, _1, _2)(a, b);
+}
 
-//TEST(testBind, correctness) {
-//    std::vector<int> v(1000);
-//    for (size_t i = 0; i < v.size(); i++) {
-//        v[i] = rand();
-//    }
-//    std::sort(v.begin(), v.end(), comparator);
-//    for (size_t i = 1; i < v.size(); i++) {
-//        EXPECT_TRUE(v[i - 1] >= v[i]);
-//    }
-//}
+TEST(testBind, correctness) {
+    std::vector<int> v(1000);
+    for (size_t i = 0; i < v.size(); i++) {
+        v[i] = rand();
+    }
+    std::sort(v.begin(), v.end(), comparator);
+    for (size_t i = 1; i < v.size(); i++) {
+        EXPECT_TRUE(v[i - 1] >= v[i]);
+    }
+}
 
-//void bar(my_struct const) {
+void bar(my_struct const) {
 
-//}
+}
 
-//TEST(testBind, constFixedArgument) {
-//    my_struct::logger = "";
-//    auto w = bind(bar, my_struct());
-//    EXPECT_EQ(my_struct::logger, "m");
-//    w();
-//    EXPECT_EQ(my_struct::logger, "mc");
-//}
+TEST(testBind, constFixedArgument) {
+    my_struct::logger = "";
+    auto w = bind(bar, my_struct());
+    EXPECT_EQ(my_struct::logger, "m");
+    w();
+    EXPECT_EQ(my_struct::logger, "mc");
+}
 
-//TEST(testBind, constPlaceholderArgument) {
-//    my_struct::logger = "";
-//    auto w = bind(bar, _1);
-//    EXPECT_EQ(my_struct::logger, "");
-//    w(my_struct());
-//    EXPECT_EQ(my_struct::logger, "m");
-//}
+TEST(testBind, constPlaceholderArgument) {
+    my_struct::logger = "";
+    auto w = bind(bar, _1);
+    EXPECT_EQ(my_struct::logger, "");
+    w(my_struct());
+    EXPECT_EQ(my_struct::logger, "m");
+}
 
-//void foo(int a[]) {
-//    a[0] = 10;
-//    a[1] = 20;
-//}
+void foo(int a[]) {
+    a[0] = 10;
+    a[1] = 20;
+}
 
-//int a[10];
+int a[10];
 
-//TEST(testBind, arrayFixedArgument) {
-//    a[0] = a[1] = 0;
-//    auto w = bind(foo, a);
-//    w();
-//    EXPECT_EQ(a[0], 10);
-//    EXPECT_EQ(a[1], 20);
-//}
+TEST(testBind, arrayFixedArgument) {
+    a[0] = a[1] = 0;
+    auto w = bind(foo, a);
+    w();
+    EXPECT_EQ(a[0], 10);
+    EXPECT_EQ(a[1], 20);
+}
 
-//TEST(testBind, arrayPlaceholderArgument) {
-//    a[0] = a[1] = 0;
-//    auto w = bind(foo, _1);
-//    w(a);
-//    EXPECT_EQ(a[0], 10);
-//    EXPECT_EQ(a[1], 20);
-//}
+TEST(testBind, arrayPlaceholderArgument) {
+    a[0] = a[1] = 0;
+    auto w = bind(foo, _1);
+    w(a);
+    EXPECT_EQ(a[0], 10);
+    EXPECT_EQ(a[1], 20);
+}
 
 //my_struct& rec(my_struct& a, my_struct& b) {
 //    return a;

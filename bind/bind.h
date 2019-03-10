@@ -43,12 +43,12 @@ struct G
     {}
 
     template <typename ... Bs>
-    decltype(auto) operator()(Bs&& ...) const
+    decltype(auto) operator()(Bs&& ...)
     {
         return a;
     }
 
-    A a;
+    std::decay_t<A> a;
 };
 
 template <>
@@ -58,7 +58,7 @@ struct G<const placeholder<1>& >
     {}
 
     template <typename B1, typename ... Bs>
-    decltype(auto) operator()(B1&& b1, Bs&& ...) const
+    decltype(auto) operator()(B1&& b1, Bs&& ...)
     {
         return std::forward<B1>(b1);
     }
@@ -71,7 +71,7 @@ struct G<const placeholder<N>& >
     {}
 
     template <typename B, typename ... Bs>
-    decltype(auto) operator()(B&&, Bs&& ... bs) const
+    decltype(auto) operator()(B&&, Bs&& ... bs)
     {
         G<const placeholder<N - 1>&> next((placeholder<N - 1>()));
         return next(std::forward<Bs>(bs)...);
@@ -81,12 +81,12 @@ struct G<const placeholder<N>& >
 template <typename F, typename ... As>
 struct G<bind_t<F, As...> >
 {
-    G(bind_t<F, As...> fun)
-        : fun(fun)
+    G(bind_t<F, As...>&& fun)
+        : fun(std::forward<bind_t<F, As...>>(fun))
     {}
 
     template <typename ... Bs>
-    decltype(auto) operator()(Bs&& ... bs) const
+    decltype(auto) operator()(Bs&& ... bs)
     {
         return fun(std::forward<Bs>(bs)...);
     }
@@ -103,20 +103,20 @@ struct bind_t
     {}
 
     template <typename ... Bs>
-    decltype(auto) operator()(Bs&& ... bs) const
+    decltype(auto) operator()(Bs&& ... bs)
     {
         return call(typename make_integer_sequence<int, sizeof...(As)>::type(), std::forward<Bs>(bs)...);
     }
 
 private:
     template <int... ks, typename ... Bs>
-    decltype(auto) call(integer_sequence<int, ks...>, Bs&& ... bs) const
+    decltype(auto) call(integer_sequence<int, ks...>, Bs&& ... bs)
     {
         return f(std::get<ks>(gs)(std::forward<Bs>(bs)...)...);
     }
 
 private:
-    F f;
+    std::decay_t<F> f;
     std::tuple<G<As>...> gs;
 };
 
