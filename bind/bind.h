@@ -35,6 +35,21 @@ struct placeholder
 template <typename F, typename ... As>
 struct bind_t;
 
+template<typename T>
+struct bind_fix {
+    typedef T type;
+};
+
+template<typename F, typename... Args>
+struct bind_fix<const bind_t<F, Args...>&> {
+    typedef bind_t<F, Args...> type;
+};
+
+template<typename F, typename... Args>
+struct bind_fix<bind_t<F, Args...>&&> {
+    typedef bind_t<F, Args...> type;
+};
+
 template <typename A>
 struct G
 {
@@ -52,7 +67,7 @@ struct G
 };
 
 template <>
-struct G<const placeholder<1>& >
+struct G<const placeholder<1>&>
 {
     G(const placeholder<1>&)
     {}
@@ -78,9 +93,46 @@ struct G<const placeholder<N>& >
     }
 };
 
-template <typename F, typename ... As>
-struct G<bind_t<F, As...> >
-{
+template<typename F, typename ... As>
+struct G<bind_t<F, As...>&> {
+    G(bind_t<F, As...>& fun)
+        : fun(fun)
+    {}
+
+    G(bind_t<F, As...>&& fun)
+        : fun(std::forward<bind_t<F, As...>>(fun))
+    {}
+
+    template <typename ... Bs>
+    decltype(auto) operator()(Bs&& ... bs)
+    {
+        return fun(std::forward<Bs>(bs)...);
+    }
+
+    bind_t<F, As...> fun;
+};
+
+template<typename F, typename ... As>
+struct G<bind_t<F, As...>> {
+    G(bind_t<F, As...> fun)
+        : fun(fun)
+    {}
+
+    template <typename ... Bs>
+    decltype(auto) operator()(Bs&& ... bs)
+    {
+        return fun(std::forward<Bs>(bs)...);
+    }
+
+    bind_t<F, As...> fun;
+};
+
+template<typename F, typename ... As>
+struct G<bind_t<F, As...>&&> {
+    G(bind_t<F, As...>& fun)
+        : fun(fun)
+    {}
+
     G(bind_t<F, As...>&& fun)
         : fun(std::forward<bind_t<F, As...>>(fun))
     {}

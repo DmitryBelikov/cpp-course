@@ -4,7 +4,6 @@
 #include <vector>
 #include <algorithm>
 
-
 constexpr placeholder<1> _1;
 constexpr placeholder<2> _2;
 constexpr placeholder<3> _3;
@@ -207,11 +206,25 @@ TEST(testBind, arrayPlaceholderArgument) {
     EXPECT_EQ(a[1], 20);
 }
 
-//my_struct& rec(my_struct& a, my_struct& b) {
-//    return a;
-//}
+my_struct& rec(my_struct& a, my_struct& b) {
+    return a;
+}
 
-//int func(int v, int w) { return v + w; }
+int func(int v, int w) { return v + w; }
+
+my_struct& simple_rec(my_struct& a) {
+    return a;
+}
+
+TEST(testBind, recSimpleBind) {
+    my_struct::logger = "";
+    my_struct x;
+    auto t = bind(simple_rec, x);
+    auto w = bind(simple_rec, t);
+    my_struct::logger = "";
+    w();
+    EXPECT_EQ(my_struct::logger, "");
+}
 
 //TEST(testBind, recBind) {
 //    my_struct::logger = "";
