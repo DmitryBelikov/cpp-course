@@ -36,7 +36,7 @@ constexpr placeholder<1> _1;
 constexpr placeholder<2> _2;
 constexpr placeholder<3> _3;
 
-template <bool Once, typename F, typename ... As>
+template <bool Temp, typename F, typename ... As>
 struct bind_t;
 
 template<typename T, typename... Ts>
@@ -52,8 +52,8 @@ struct get_count<T0, T1, Ts...> {
     constexpr static int value = static_cast<int>(std::is_same_v<T0, T1>) + get_count<T0, Ts...>::value;
 };
 
-template<typename T0, bool Once, typename F, typename... Args, typename... Ts>
-struct get_count<T0, bind_t<Once, F, Args...>, Ts...> {
+template<typename T0, bool Temp, typename F, typename... Args, typename... Ts>
+struct get_count<T0, bind_t<Temp, F, Args...>, Ts...> {
     constexpr static int value = get_count<T0, Args...>::value + get_count<T0, Ts...>::value;
 };
 
@@ -62,28 +62,28 @@ struct is_unique {
     constexpr static bool value = get_count<T0, Ts...>::value == 1;
 };
 
-template<bool Once, typename T>
-struct add_ref;
+template<bool Temp, typename T>
+struct add_temp;
 
 template<typename T>
-struct add_ref<false, T> {
+struct add_temp<false, T> {
     typedef T& type;
 };
 
 template<typename T>
-struct add_ref<true, T> {
+struct add_temp<true, T> {
     typedef T&& type;
 };
 
 template<typename B, int N, typename... Bs>
-struct add_arg_ref {
-    typedef typename add_ref<get_count<const placeholder<N + 1>&, Bs...>::value == 1, B>::type type;
+struct add_arg_temp {
+    typedef typename add_temp<get_count<const placeholder<N + 1>&, Bs...>::value == 1, B>::type type;
 };
 
 template<typename B, int N, typename... Bs>
-using add_arg_ref_t = typename add_arg_ref<B, N, Bs...>::type;
+using add_arg_temp_t = typename add_arg_temp<B, N, Bs...>::type;
 
-template<bool Once, typename A>
+template<bool Temp, typename A>
 struct G
 {
     G(A&& a)
@@ -93,7 +93,7 @@ struct G
     template <typename ... Bs>
     decltype(auto) operator()(Bs&& ...)
     {
-        return static_cast<typename add_ref<Once, std::decay_t<A>>::type>(a);
+        return static_cast<typename add_temp<Temp, std::decay_t<A>>::type>(a);
     }
 
     std::decay_t<A> a;
@@ -132,8 +132,8 @@ struct G
 //};
 
 
-template <bool Once>
-struct G<Once, const placeholder<1>&>
+template <bool Temp>
+struct G<Temp, const placeholder<1>&>
 {
     G(const placeholder<1>&)
     {}
@@ -145,8 +145,8 @@ struct G<Once, const placeholder<1>&>
     }
 };
 
-template <bool Once, int N>
-struct G<Once, const placeholder<N>& >
+template <bool Temp, int N>
+struct G<Temp, const placeholder<N>& >
 {
     G(const placeholder<N>&)
     {}
@@ -154,19 +154,15 @@ struct G<Once, const placeholder<N>& >
     template <typename B, typename ... Bs>
     decltype(auto) operator()(B&&, Bs&& ... bs)
     {
-        G<Once, const placeholder<N - 1>&> next((placeholder<N - 1>()));
+        G<Temp, const placeholder<N - 1>&> next((placeholder<N - 1>()));
         return next(std::forward<Bs>(bs)...);
     }
 };
 
-template<bool Once, bool InnerOnce, typename F, typename ... As>
-struct G<Once, bind_t<InnerOnce, F, As...>> {
-    G(const bind_t<InnerOnce, F, As...>& fun)
+template<bool Temp, bool InnerTemp, typename F, typename ... As>
+struct G<Temp, bind_t<InnerTemp, F, As...>> {
+    G(const bind_t<InnerTemp, F, As...>& fun)
         : fun(fun)
-    {}
-
-    G(bind_t<InnerOnce, F, As...>&& fun)
-        : fun(std::forward<bind_t<InnerOnce, F, As...>>(fun))
     {}
 
     template <typename ... Bs>
@@ -175,10 +171,10 @@ struct G<Once, bind_t<InnerOnce, F, As...>> {
         return fun(std::forward<Bs>(bs)...);
     }
 
-    bind_t<InnerOnce, F, As...> fun;
+    bind_t<InnerTemp, F, As...> fun;
 };
 
-template <bool Once, typename F, typename ... As>
+template <bool Temp, typename F, typename ... As>
 struct bind_t
 {
     bind_t(F&& f, As&& ... as)
@@ -198,12 +194,12 @@ private:
     decltype(auto) call(integer_sequence<int, ks...>, integer_sequence<int, ns...>, Bs&& ... bs)
     {
 
-        return f(std::get<ks>(gs)(add_arg_ref_t<Bs, ns, As...>(bs)...)...);
+        return f(std::get<ks>(gs)(add_arg_temp_t<Bs, ns, As...>(bs)...)...);
     }
 
 private:
     std::decay_t<F> f;
-    std::tuple<G<Once, As>...> gs;
+    std::tuple<G<Temp, As>...> gs;
 };
 
 template <typename F, typename ... As>
