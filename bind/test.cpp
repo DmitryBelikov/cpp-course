@@ -4,9 +4,7 @@
 #include <vector>
 #include <algorithm>
 
-constexpr placeholder<1> _1;
-constexpr placeholder<2> _2;
-constexpr placeholder<3> _3;
+
 
 void printFunc(int a, int b, int c)
 {
@@ -93,29 +91,29 @@ TEST(testBind, copyPlaceholder) {
     EXPECT_EQ(my_struct::logger, "c");
 }
 
-//void g(my_struct, my_struct) {
+void g(my_struct, my_struct) {
 
-//}
+}
 
-//TEST(testBind, copyUnuniquePlaceholder) {
-//    my_struct::logger = "";
-//    auto w = bind(g, _1, _1);
-//    EXPECT_EQ(my_struct::logger, "");
-//    w(my_struct());
-//    EXPECT_EQ(my_struct::logger, "cc");
-//}
+TEST(testBind, copyUnuniquePlaceholder) {
+    my_struct::logger = "";
+    auto w = bind(g, _1, _1);
+    EXPECT_EQ(my_struct::logger, "");
+    w(my_struct());
+    EXPECT_EQ(my_struct::logger, "cc");
+}
 
-//void gg(my_struct, my_struct, my_struct) {
+void gg(my_struct, my_struct, my_struct) {
 
-//}
+}
 
-//TEST(testBind, uniqueAndUnuniquePlaceholdersTogether) {
-//    my_struct::logger = "";
-//    auto w = bind(gg, _1, _2, _1);
-//    EXPECT_EQ(my_struct::logger, "");
-//    w(my_struct(), my_struct(), my_struct());
-//    EXPECT_TRUE(my_struct::logger == "mcc" || my_struct::logger == "cmc" || my_struct::logger == "ccm");
-//}
+TEST(testBind, uniqueAndUnuniquePlaceholdersTogether) {
+    my_struct::logger = "";
+    auto w = bind(gg, _1, _2, _1);
+    EXPECT_EQ(my_struct::logger, "");
+    w(my_struct(), my_struct(), my_struct());
+    EXPECT_TRUE(my_struct::logger == "mcc" || my_struct::logger == "cmc" || my_struct::logger == "ccm");
+}
 
 struct simpleFo {
     void operator()() {}
@@ -133,7 +131,6 @@ std::string simpleFo::logger;
 TEST(testBind, moveSimpleFunctionalObject) {
     simpleFo::logger = "";
     auto w = bind(simpleFo());
-    //bind(simpleFo());
     EXPECT_EQ(simpleFo::logger, "m");
     w();
     EXPECT_EQ(simpleFo::logger, "m");
@@ -216,62 +213,52 @@ my_struct& simple_rec(my_struct& a) {
     return a;
 }
 
-TEST(testBind, recSimpleBind) {
+TEST(testBind, recBind) {
     my_struct::logger = "";
-    my_struct x;
-    auto t = bind(simple_rec, x);
-    auto w = bind(simple_rec, t);
+    my_struct x, y, z;
+    auto w = bind(rec, bind(rec, x, y), z);
+    EXPECT_EQ(my_struct::logger.length(), size_t(5));
     my_struct::logger = "";
     w();
     EXPECT_EQ(my_struct::logger, "");
 }
 
-//TEST(testBind, recBind) {
-//    my_struct::logger = "";
-//    my_struct x, y, z;
-//    auto w = bind(rec, bind(rec, x, y), z);
-//    EXPECT_EQ(my_struct::logger.length(), size_t(5));
-//    my_struct::logger = "";
-//    w();
-//    EXPECT_EQ(my_struct::logger, "");
-//}
+TEST(testBind, recBind2) {
+    my_struct::logger = "";
+    my_struct x, y;
+    auto w = bind(rec, bind(rec, _1, _2), _1);
+    EXPECT_EQ(my_struct::logger, "");
+    w(x, y);
+    EXPECT_EQ(my_struct::logger, "");
+}
 
-//TEST(testBind, recBind2) {
-//    my_struct::logger = "";
-//    my_struct x, y;
-//    auto w = bind(rec, bind(rec, _1, _2), _1);
-//    EXPECT_EQ(my_struct::logger, "");
-//    w(x, y);
-//    EXPECT_EQ(my_struct::logger, "");
-//}
+TEST(testBind, recBind3) {
+    my_struct::logger = "";
+    my_struct x, y;
+    auto w = call_once_bind(rec, bind(rec, _1, _2), _1);
+    EXPECT_EQ(my_struct::logger, "");
+    w(x, y);
+    EXPECT_EQ(my_struct::logger, "");
+}
 
-//TEST(testBind, recBind3) {
-//    my_struct::logger = "";
-//    my_struct x, y;
-//    auto w = call_once_bind(rec, bind(rec, _1, _2), _1);
-//    EXPECT_EQ(my_struct::logger, "");
-//    w(x, y);
-//    EXPECT_EQ(my_struct::logger, "");
-//}
+TEST(testCallOnceBind, moveFixedRvalueArgument) {
+    my_struct::logger = "";
+    auto w = call_once_bind(f, my_struct());
+    EXPECT_EQ(my_struct::logger, "m");
+    w();
+    EXPECT_EQ(my_struct::logger, "mm");
+}
 
-//TEST(testCallOnceBind, moveFixedRvalueArgument) {
-//    my_struct::logger = "";
-//    auto w = call_once_bind(f, my_struct());
-//    EXPECT_EQ(my_struct::logger, "m");
-//    w();
-//    EXPECT_EQ(my_struct::logger, "mm");
-//}
+TEST(testCallOnceBind, moveFixedLvalueArgument) {
+    my_struct::logger = "";
+    my_struct x;
+    auto w = call_once_bind(f, x);
+    EXPECT_EQ(my_struct::logger, "c");
+    w();
+    EXPECT_EQ(my_struct::logger, "cm");
+}
 
-//TEST(testCallOnceBind, moveFixedLvalueArgument) {
-//    my_struct::logger = "";
-//    my_struct x;
-//    auto w = call_once_bind(f, x);
-//    EXPECT_EQ(my_struct::logger, "c");
-//    w();
-//    EXPECT_EQ(my_struct::logger, "cm");
-//}
-
-//TEST(testBind, recBind4) {
-//    int ans = bind(func, _1, bind(func, _1, _2))(100, 200);
-//    EXPECT_EQ(ans, 400);
-//}
+TEST(testBind, recBind4) {
+    int ans = bind(func, _1, bind(func, _1, _2))(100, 200);
+    EXPECT_EQ(ans, 400);
+}
